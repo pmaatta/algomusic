@@ -1,0 +1,71 @@
+- "In C" idea
+- rhythmic complexity
+- pattern mutation
+- communication between patterns
+- harmony / chord progressions
+- tonal / modal
+- chromatic notes, borrowed chords
+- percussion
+- non-spicy modes for major
+- arpeggiator
+  - random chords, more / less extensions
+  - leaps vs no leaps
+  - beat & bassline
+- riffs
+  - fifths
+- harmonize existing pattern
+- beat generator
+- harmony + bass connection
+- unison / duplicate pattern
+- overlapping patterns of different length
+- modulation
+  - key change jumping distribution
+  - pattern modulation without change
+- independent/separate track for percussion
+- check instruments
+- structure
+  - question & answer phrases
+- fix tempo usage
+
+
+Patches 1
+1 piano
+8 celesta
+10 music box
+11 vibraphone
+12 marimba
+15 dulcimer
+23 tango accordion
+36 fretless bass
+46 pizz strings
+47 harp
+49-52 string ensemble
+53 voice oohs
+63 synth brass
+71 clarinet
+72-76,78,79 pipes
+88 new age pad
+90 polysynth pad
+102 echoes
+(114 steel drums)
+
+Patches 2
+1 piano
+9 celesta
+11 music box
+12 vibraphone
+13 marimba
+16 dulcimer
+24 tango accordion
+36 fretless bass?
+46 pizz strings
+47 harp
+49-52 string ensemble
+54 voice oohs
+63 synth brass
+72 clarinet
+73-77,79,80 pipes
+89 new age pad
+91 polysynth pad
+103 echoes
+115 steel drums

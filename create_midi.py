@@ -6,7 +6,6 @@ from patterns import Scale, Pattern, Percussion, Bass, SimpleBass, SimpleBass2, 
                      Harmonic, Arpeggio, LowMelodic, MidMelodic, HighMelodic
 
 
-# TODO: high note volume limiting
 # TODO: make use of name 'pattern' less ambiguous
 # TODO: melodic type without replacement
 # TODO: keep instruments same throughout
@@ -107,8 +106,8 @@ with open('parameters.txt', 'w+') as text_file:
 
 # Allowed patterns, scales, instruments
 
-all_instruments = [1,8,10,12,15,23,36,46,47,49,50,51,52,53,63,71,72,73,74,75,76,78,79,88,90,102,114]  # 11
-bass_instruments = [1,36,49,50,51,52,63]  # 36 slap bass, fretless = ?
+all_instruments = [1,8,10,11,12,15,23,35,45,46,48,49,50,51,52,62,71,72,73,74,75,76,78,79,88,89,90,102,114]  # 11
+bass_instruments = [0,33,35,48,49,50,51,62]  # 36 slap bass, fretless = ?
 arp_instruments = [90,102]
 
 bass = random.choice([Bass, SimpleBass, SimpleBass2])

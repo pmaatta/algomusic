@@ -4,6 +4,7 @@ from scipy.stats import norm
 from abc import ABC, abstractmethod
 
 
+# TODO: percussionsingle
 # TODO: better durations
 # TODO: class "Song" for song generation handling
     # chords, chord progressions, arpeggios, chord tones for melodies, pedal point for bass, ...
@@ -13,9 +14,9 @@ from abc import ABC, abstractmethod
 # TODO: docs for class attributes
 # TODO: docs for patterns if not self-explanatory
 # TODO: input Scale instance into Pattern to get mode center
-# TODO: SimpleBass3: plays key/mode center only
 # TODO: drums vs percs
     # too sparse rhythm
+    # percussion subpatterns
 # TODO: randomize length, repeat at user input level
 # TODO: chords as scales
 # TODO: pattern interaction
@@ -39,8 +40,8 @@ class Scale:
 
     Attributes:
         key: int
-        key_name: str
         scale_type_name: str
+        key_name: str
         scale_type: list[int]
         mode: list[int]
         mode_name: str
@@ -255,7 +256,6 @@ class Pattern(ABC):
         Sample notes from an arpeggio-type note distribution.
         
         TODO (notes rising in thirds from the root note).
-        
         """
         while root_note not in all_notes:
             root_note += 12
@@ -291,11 +291,14 @@ class Pattern(ABC):
 
 
 class Percussion(Pattern):
+    """
+    Generic percussion type pattern (no drum kit sounds). Each note in the pattern 
+    is potentially a different sound/instrument.
+    """
     def __init__(self, key, scale, length=None, repeat=None, note_amount=None):
         super().__init__(key, scale, length, repeat)
         default_note_amount = random.randint(self.length, 2*self.length)
         self.note_amount = note_amount if note_amount is not None else default_note_amount
-        self.allowed_range = range(59, 70)
 
     def generate_rhythm(self):
         start_times = sorted(random.choices(range(self.length), k=self.note_amount))
@@ -303,7 +306,93 @@ class Percussion(Pattern):
         self.repeat_rhythm(start_times, durations)
 
     def generate_melody(self):
-        self.notes = random.choices(self.allowed_range, k=self.note_amount) * self.repeat
+        allowed_range = range(60, 71)
+        self.notes = random.choices(allowed_range, k=self.note_amount) * self.repeat
+
+
+class PercussionSingle(Percussion):
+    """
+    Generic percussion type pattern (no drum kit sounds). Each note in the pattern 
+    is the same sound/instrument.
+    """
+    def __init__(self, key, scale, length=None, repeat=None, note_amount=None):
+        super().__init__(key, scale, length, repeat)
+        default_note_amount = random.randint(1, self.length)
+        self.note_amount = note_amount if note_amount is not None else default_note_amount
+    
+    def generate_melody(self):
+        allowed_range = range(60, 71)
+        self.notes = random.choices(allowed_range, k=1) * self.note_amount * self.repeat
+
+
+class BassDrum(PercussionSingle):
+    """
+    Bass drum pattern. Rhythm heavily weighted on quarter notes (TODO).
+    """
+    def generate_rhythm(self):
+        w = []
+        for i in range(self.length):
+            if i % 4 == 0:
+                w.append(5)
+            else:
+                w.append(1)
+        start_times = sorted(random.choices(range(self.length), k=self.note_amount, weights=w))
+        durations = [1] * self.note_amount
+        self.repeat_rhythm(start_times, durations)
+
+    def generate_melody(self):
+        self.notes = [35] * self.note_amount * self.repeat
+
+
+class Snare(PercussionSingle):
+    """
+    Snare drum pattern. Rhythm heavily weighted on quarter notes 2 and 4 (*) (TODO).
+    """
+    def generate_rhythm(self):
+        w = []
+        for i in range(self.length):
+            if i % 8 == 4:
+                w.append(5)
+            else:
+                w.append(1)
+        start_times = sorted(random.choices(range(self.length), k=self.note_amount, weights=w))
+        durations = [1] * self.note_amount
+        self.repeat_rhythm(start_times, durations)
+
+    def generate_melody(self):
+        self.notes = [40] * self.note_amount * self.repeat
+
+
+class Cymbals(PercussionSingle):
+    """
+    Cymbal pattern with no accent/crash cymbals. Each note in the pattern is the same sound/instrument.
+    """
+    def generate_melody(self):
+        allowed_range = [42,44,46,51,53,59]
+        self.notes = random.choices(allowed_range, k=1) * self.note_amount * self.repeat
+
+
+class AccentCymbals(Pattern):
+    """
+    Accent (crash) cymbal pattern. Each note in the pattern is the same sound/instrument. Only plays
+    1 note per repeat (alternatively 1 note per all repeats) in the beginning of the pattern.
+    """
+    def __init__(self, key, scale, length=None, repeat=None, note_amount=None, play_each_repeat=False):
+        super().__init__(key, scale, length, repeat)
+        self.note_amount = 1
+        self.allowed_range = [49,52,55,57]
+        self.play_each_repeat = play_each_repeat
+
+    def generate_rhythm(self):
+        self.start_times = [0]
+        self.durations = [1]
+        if self.play_each_repeat:
+            self.repeat_rhythm(self.start_times, self.durations)
+
+    def generate_melody(self):
+        self.notes = random.choices(self.allowed_range, k=1) * self.note_amount
+        if self.play_each_repeat:
+            self.notes = self.notes * self.repeat
 
 
 class Bass(Pattern):
@@ -349,6 +438,9 @@ class Bass(Pattern):
 
 
 class SimpleBass(Pattern):
+    """
+    Plays one note that is the length of the pattern and that is the same for all repeats.
+    """
     def __init__(self, key, scale, length=None, repeat=None, note_amount=None):
         super().__init__(key, scale, length, repeat)
         self.allowed_range = range(23, 49)
@@ -365,9 +457,21 @@ class SimpleBass(Pattern):
 
 
 class SimpleBass2(SimpleBass):
+    """
+    Plays one note that is the length of the pattern and that may change for repeats.
+    """
     def generate_melody(self):
         all_notes = [x for x in self.scale if x <= 48]
         self.notes = self.sample_notes(self.note_amount, all_notes) * self.repeat
+
+
+class SimpleBass3(Bass):
+    """
+    Plays the key/mode center only.
+    """
+    def generate_melody(self):
+        all_notes = [x for x in self.scale if x <= 48 and x%12 == self.key]
+        self.notes = self.sample_notes(self.repeat, all_notes) * self.note_amount
 
 
 class Melodic(Pattern, ABC):

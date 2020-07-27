@@ -1,4 +1,5 @@
 import random
+import warnings
 from patterns import Scale
 
 
@@ -6,7 +7,6 @@ from patterns import Scale
 # TODO: mutate progression
     # easier with class
 # TODO: return chord names
-# TODO: make into function instead of class
 # TODO: same vs different voicing / chord type for all chords
 # TODO: scale degree not in scale
 # TODO: chord type not in scale
@@ -31,11 +31,11 @@ def generate_chord_progression(scale, length=8, voicing=None):
                                   a list of ints in range(scale_length).
     Returns:
         chord_progression_notes: list(list(int))  A list containing a list of notes for each chord.
-
     """
 
     if scale.scale_type_name != 'major':
-        raise NotImplementedError
+        warnings.warn('voicings do not correspond to scale degrees properly with non-diatonic scales')
+        # raise NotImplementedError
 
     basic_voicings = {
         'triad':    [0, 2, 4],

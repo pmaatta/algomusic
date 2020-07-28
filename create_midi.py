@@ -2,10 +2,12 @@ import random
 import argparse
 from midiutil import MIDIFile
 from chordprogression import generate_chord_progression
-from patterns import Scale, Pattern, Percussion, Bass, SimpleBass, SimpleBass2, \
-                     Harmonic, Arpeggio, LowMelodic, MidMelodic, HighMelodic
+from patterns import Scale, Pattern, Percussion, Bass, SimpleBass, SimpleBass2, SimpleBass3, \
+                     Harmonic, Arpeggio, LowMelodic, MidMelodic, HighMelodic, PercussionSingle, \
+                     BassDrum, Snare, Cymbals, AccentCymbals
 
 
+# TODO: number of different pattern types
 # TODO: make use of name 'pattern' less ambiguous
 # TODO: melodic type without replacement
 # TODO: keep instruments same throughout
@@ -55,7 +57,7 @@ parser.add_argument('-lt', '--limittracks', type=int, default=1, choices=[1,0], 
 parser.add_argument('-ar', '--arpeggio', type=int, default=1, choices=[1,0], help=f'whether to allow arpeggio pattern type', metavar='')
 parser.add_argument('-nc', '--nicescales', type=int, default=1, choices=[1,0], help=f'whether to use "nice" or "spicy" scales', metavar='')
 parser.add_argument('-cpl', '--chordproglen', type=int, default=None, choices=range(1,33), help=f'length of chord progression', metavar='')
-parser.add_argument('-gen', '--gentype', type=int, default=2, choices=[1, 2], help=f'music generation type', metavar='')
+parser.add_argument('-gen', '--gentype', type=int, default=2, choices=[1,2,3], help=f'music generation type', metavar='')
 
 args = parser.parse_args()
 
@@ -104,20 +106,35 @@ with open('parameters.txt', 'w+') as text_file:
     text_file.write('\n'.join([str(arg) for arg in vars(args).items()]))
     text_file.write('\n\n')
 
-# Allowed patterns, scales, instruments
-
-all_instruments = [1,8,10,11,12,15,23,35,45,46,48,49,50,51,52,62,71,72,73,74,75,76,78,79,88,89,90,102,114]  # 11
-bass_instruments = [0,33,35,48,49,50,51,62]  # 36 slap bass, fretless = ?
+# Allowed instruments
+all_instruments = [1,8,10,11,12,15,23,35,45,46,48,49,50,51,52,62,71,72,73,74,75,76,78,79,88,89,90,102,114]
+bass_instruments = [0,33,35,48,49,50,51,62]
 arp_instruments = [90,102]
 
-bass = random.choice([Bass, SimpleBass, SimpleBass2])
-melodies = [LowMelodic, MidMelodic, HighMelodic]
+# Patterns
+all_pattern_types = [Percussion, Bass, SimpleBass, SimpleBass2, SimpleBass3, Harmonic, \
+                     Arpeggio, LowMelodic, MidMelodic, HighMelodic, PercussionSingle, \
+                     BassDrum, Snare, Cymbals, AccentCymbals]
+
+percussion_pattern_types = [PercussionSingle, BassDrum, Snare, Cymbals, AccentCymbals]
+
+bass_pattern_types = [Bass, SimpleBass, SimpleBass2, SimpleBass3]
+
+melody_pattern_types = [LowMelodic, MidMelodic, HighMelodic]
+
+# Max 1 bass type and 2 melody types (TODO)
+bass = random.choice(bass_pattern_types)
+melodies = melody_pattern_types.copy()
 melody1 = random.choice(melodies)
 melodies.remove(melody1)
 melody2 = random.choice(melodies)
 
 allowed_pattern_types = [
-    Percussion,
+    PercussionSingle,
+    BassDrum,
+    Snare,
+    Cymbals,
+    AccentCymbals,
     bass,
     Harmonic,
     Arpeggio,
@@ -128,6 +145,7 @@ allowed_pattern_types = [
 if not args.arpeggio:
     allowed_pattern_types.remove(Arpeggio)
 
+# Scales
 nice_scale_types = [
     'major',
     'pentatonic',
@@ -181,10 +199,10 @@ def generate_music_1():
                     available_patterns.remove(pattern.__class__) 
 
                 # Choose instrument
-                if pattern.__class__ == Percussion:
+                if pattern.__class__ in percussion_pattern_types:
                     channel = 9
                     instr = 0
-                elif pattern.__class__ in [Bass, SimpleBass, SimpleBass2]:
+                elif pattern.__class__ in bass_pattern_types:
                     instr = random.choice(bass_instruments)
                 elif pattern.__class__ == Arpeggio:
                     instr = random.choice(arp_instruments)
@@ -196,7 +214,7 @@ def generate_music_1():
                 # Limit volumes
                 if pattern.__class__ == Harmonic:
                     pattern.volumes = [50 for x in pattern.volumes]
-                elif pattern.__class__ == Percussion:
+                if pattern.__class__ in percussion_pattern_types:
                     pattern.volumes = [50 for x in pattern.volumes]
 
                 patterns.append((track, channel, pattern))
@@ -361,10 +379,10 @@ def generate_music_2():
             available_patterns.remove(pattern.__class__) 
 
             # Choose instrument
-            if pattern.__class__ == Percussion:
+            if pattern.__class__ in percussion_pattern_types:
                 channel = 9
                 instr = 0
-            elif pattern.__class__ in [Bass, SimpleBass, SimpleBass2]:
+            elif pattern.__class__ in bass_pattern_types:
                 instr = random.choice(bass_instruments)
             elif pattern.__class__ == Arpeggio:
                 instr = random.choice(arp_instruments)
@@ -377,7 +395,7 @@ def generate_music_2():
             # Limit volumes
             if pattern.__class__ == Harmonic:
                 pattern.volumes = [50 for x in pattern.volumes]
-            elif pattern.__class__ == Percussion:
+            elif pattern.__class__ == percussion_pattern_types:
                 pattern.volumes = [50 for x in pattern.volumes]
 
             patterns.append((track, channel, pattern))
@@ -409,12 +427,211 @@ def generate_music_2():
         midi_file.writeFile(output_file)
 
 
+def generate_music_test():
+    """
+    Sandbox version of generate_music_1.
+    """
+    patterns = []
+
+    # TODO: user option to use all patterns in available_patterns 
+
+    for i in range(args.numpatterns):
+
+        # Generate one set of patterns
+        if i == 0:
+
+            available_patterns = [
+                PercussionSingle,
+                BassDrum,
+                Snare,
+                Cymbals,
+                AccentCymbals,
+                bass,
+                # Harmonic,
+                # Arpeggio,
+                melody1,
+                melody2
+            ]
+
+            for track in range(args.numtracks):
+                channel = track
+
+                # Generate random pattern and initialize
+                # Always include bass, bass drum
+                if track == 0:
+                    pattern = bass(
+                        scale.key,
+                        scale.all_scale_notes,
+                        args.length,
+                        args.repeat
+                    )    
+                elif track == 1:
+                    pattern = BassDrum(
+                        scale.key,
+                        scale.all_scale_notes,
+                        args.length,
+                        args.repeat
+                    )    
+                else:
+                    pattern = random.choice(available_patterns)(
+                        scale.key,
+                        scale.all_scale_notes,
+                        args.length,
+                        args.repeat
+                    )
+                pattern.initialize()
+
+                if pattern.__class__ in [BassDrum, Snare, AccentCymbals, bass, melody1, melody2]:
+                    available_patterns.remove(pattern.__class__) 
+
+                # Choose instrument
+                if pattern.__class__ in percussion_pattern_types:
+                    channel = 9
+                    instr = 0
+                elif pattern.__class__ in bass_pattern_types:
+                    instr = random.choice(bass_instruments)
+                elif pattern.__class__ == Arpeggio:
+                    instr = random.choice(arp_instruments)
+                else:
+                    instr = random.choice(all_instruments)
+
+                instruments_used.append(str(instr))
+                midi_file.addProgramChange(track, channel, 0, instr)
+                
+                # Limit volumes
+                if pattern.__class__ == Harmonic:
+                    pattern.volumes = [50 for x in pattern.volumes]
+                elif pattern.__class__ == percussion_pattern_types:
+                    pattern.volumes = [50 for x in pattern.volumes]
+
+                patterns.append((track, channel, pattern))
+
+                # Add notes to MIDI file
+                for i in range(len(pattern.notes)):
+                    midi_file.addNote(track, 
+                                    channel,
+                                    pattern.notes[i],
+                                    pattern.start_times[i],
+                                    pattern.durations[i],
+                                    pattern.volumes[i])
+
+        # Mutate patterns
+        else:
+
+            # Choose random mutation type
+            mutation_types = [
+                'modulate',
+                'diatonic_modulate',
+                'invert',
+                'reverse_melody',
+                'regenerate_melody',
+                'regenerate_rhythm'
+            ]
+            mutation_weights = [1, 5, 2, 1, 1, 2]
+            mutation = random.choices(mutation_types, mutation_weights, k=1)[0]
+
+            if mutation == 'modulate':
+                modulations = []
+                successes = [False]
+                tries = 0
+                while not all(successes) and tries < 20:
+                    tries += 1
+                    shifts = list(range(-5, 0)) + list(range(1, 6))
+                    shift = random.choice(shifts)
+                    modulations = []
+                    successes = []
+                    for _, _, pattern in patterns:
+                        success, new_notes, new_key, new_scale = pattern.modulate(shift)
+                        modulations.append((new_notes, new_key, new_scale))
+                        successes.append(success)
+                if all(successes):
+                    new_key = modulations[0][1]
+                    keys_used.append(Scale.note_names[new_key])
+                    for i, (_, _, pattern) in enumerate(patterns):
+                        pattern.notes = modulations[i][0]
+                        pattern.key = modulations[i][1]
+                        pattern.scale = modulations[i][2]
+                
+            elif mutation == 'diatonic_modulate':
+                modulations = []
+                successes = [False]
+                tries = 0
+                while not all(successes) and tries < 20:
+                    tries += 1
+                    shifts = list(range(-4, 0)) + list(range(1, 5))
+                    shift = random.choice(shifts)
+                    modulations = []
+                    successes = []
+                    for _, _, pattern in patterns:
+                        success, new_notes = pattern.diatonic_modulate(shift)
+                        modulations.append(new_notes)
+                        successes.append(success)
+                if all(successes):
+                    for i, (_, _, pattern) in enumerate(patterns):
+                        pattern.notes = modulations[i]
+
+            elif mutation == 'invert':
+                for _, _, pattern in patterns:
+                    if random.random() < 0.5:
+                        success = False
+                        tries = 0
+                        while not success and tries < 20:
+                            success, new_notes = pattern.invert()
+                            tries += 1
+                        if success:
+                            pattern.notes = new_notes
+
+            elif mutation == 'reverse_melody':
+                for _, _, pattern in patterns:
+                    if random.random() < 0.5:
+                        pattern.reverse_melody()
+
+            elif mutation == 'regenerate_melody':
+                for _, _, pattern in patterns:
+                    if random.random() < 0.5:
+                        pattern.generate_melody()
+
+            elif mutation == 'regenerate_rhythm':
+                for _, _, pattern in patterns:
+                    if random.random() < 0.5:
+                        pattern.regenerate_rhythm()
+
+            # Add notes to MIDI file
+            for track, channel, pattern in patterns:
+                pattern.start_times = [x + pattern.total_length for x in pattern.start_times]
+                for i in range(len(pattern.notes)):
+                    midi_file.addNote(track, 
+                                      channel,
+                                      pattern.notes[i],
+                                      pattern.start_times[i],
+                                      pattern.durations[i],
+                                      pattern.volumes[i])
+
+    # Write scale, instrument, pattern information to text file
+    with open('parameters.txt', 'a+') as text_file:
+        text_file.write('Key(s): ' + ', '.join(keys_used) + '\n')
+        text_file.write(f'Scale type: {scale.scale_type_name}\n')
+        text_file.write(f'Mode: {scale.mode_name}\n\n')
+        text_file.write('Instruments: {}\n'.format(' '.join(instruments_used)))
+        text_file.write('Pattern types:\n')
+        p_strs = [str(p.__class__).split('.')[1].split("'")[0] for _, _, p in patterns]
+        text_file.write(' '.join(p_strs))
+        #text_file.write('Notes: {}\n'.format(', '.join(scale.names)))
+
+    # Write to MIDI
+    with open("test.mid", "wb") as output_file:
+        midi_file.writeFile(output_file)
+
 
 if __name__ == "__main__":
 
     # Choose generation function
     if args.gentype == 1:
         generate_music_1()
+        
     elif args.gentype == 2:
         generate_music_2()
+
+    elif args.gentype == 3:
+        generate_music_test()
 

@@ -4,6 +4,9 @@ Top priority:
 - beat generator
   - choose note amount, pattern length & evenly divide notes into pattern
 - solid chord prog + free markov chain melody + drum beat w/ variation
+- gentype 1,2
+  - 2: same instruments
+  - 'merge' 1 and 2: generate chord prog, generate pattern(s), mutate based on chord
 
 
 Normal priority:

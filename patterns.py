@@ -120,6 +120,7 @@ class Pattern(ABC):
         self.durations = None
         self.volumes = None
         self.root_note = None
+        self.percussion_pattern_types = [PercussionSingle, BassDrum, Snare, Cymbals, AccentCymbals]
 
     @abstractmethod
     def generate_rhythm(self):
@@ -141,7 +142,7 @@ class Pattern(ABC):
         """
         assert self.notes is not None, 'generate_rhythm and generate_melody must be called first'
         volumes = random.choices(range(70,110), k=self.note_amount*self.repeat)
-        if self.__class__ != Percussion:
+        if self.__class__ not in (self.percussion_pattern_types + [Percussion]):
             for i, note in enumerate(self.notes):
                 if note > 72 and volumes[i] > 70:
                     volumes[i] = 70
@@ -188,7 +189,7 @@ class Pattern(ABC):
         Does nothing if at least one inverted note ends up out of the allowed range. 
         """
         assert self.notes is not None, 'Pattern has not been initialized'
-        if self.__class__ == Percussion:
+        if self.__class__  in (self.percussion_pattern_types + [Percussion]):
             return True, self.notes
 
         scale_idxs = range(len(self.scale))
@@ -209,7 +210,7 @@ class Pattern(ABC):
         Does nothing if at least one modulated note ends up out of the allowed range. 
         Shift may be positive or negative. 
         """
-        if self.__class__ == Percussion:
+        if self.__class__  in (self.percussion_pattern_types + [Percussion]):
             return True, self.notes, self.key, self.scale
         
         new_notes = [note + shift for note in self.notes if note + shift in self.allowed_range]
@@ -228,7 +229,7 @@ class Pattern(ABC):
         The new notes belong to self.scale. Does nothing if at least one modulated 
         note ends up out of the allowed range. Shift may be positive or negative.
         """
-        if self.__class__ == Percussion:
+        if self.__class__  in (self.percussion_pattern_types + [Percussion]):
             return True, self.notes
 
         idxs = [self.scale.index(x) for x in self.notes]
@@ -265,31 +266,9 @@ class Pattern(ABC):
         all_notes = all_notes[idx::2]
         notes = random.choices(all_notes, k=self.note_amount)
         return notes
-    
-    # def sample_notes(self, note_amount, all_notes, bass=False, std_dev=6):
-    #     """
-    #     Sample note_amount notes from all_notes using a gaussian jumping distribution.
-    #     """
-    #     notes = []
-    #     for i in range(note_amount):
-    #         if i == 0:
-    #             # First note key center weighted more if instrument role is bass
-    #             W = []
-    #             for n in all_notes:
-    #                 if bass and n % 12 == self.key:
-    #                     W.append(3)
-    #                 else:
-    #                     W.append(1)
-    #             notes.append(random.choices(all_notes, weights=W, k=1)[0])
-    #         else:
-    #             # Gaussian jumping distribution centered on previous note
-    #             # Standard deviation can be tuned
-    #             N = norm(notes[-1], std_dev)  
-    #             W = [N.pdf(x) for x in all_notes]
-    #             notes.append(random.choices(all_notes, weights=W, k=1)[0])
-    #     return notes
 
 
+# TODO: make abstract / deprecate
 class Percussion(Pattern):
     """
     Generic percussion type pattern (no drum kit sounds). Each note in the pattern 
@@ -344,15 +323,20 @@ class BassDrum(PercussionSingle):
         self.notes = [35] * self.note_amount * self.repeat
 
 
-class Snare(PercussionSingle):
+class Snare(Pattern):
     """
-    Snare drum pattern. Rhythm heavily weighted on quarter notes 2 and 4 (*) (TODO).
+    Snare drum pattern. Rhythm heavily weighted on quarter notes 2 and 4 (where applicable).
     """
+    def __init__(self, key, scale, length=None, repeat=None, note_amount=None):
+        super().__init__(key, scale, length, repeat)
+        default_note_amount = random.randint(1, self.length // 2)
+        self.note_amount = note_amount if note_amount is not None else default_note_amount
+
     def generate_rhythm(self):
         w = []
         for i in range(self.length):
             if i % 8 == 4:
-                w.append(5)
+                w.append(10)
             else:
                 w.append(1)
         start_times = sorted(random.choices(range(self.length), k=self.note_amount, weights=w))
@@ -417,24 +401,6 @@ class Bass(Pattern):
     def generate_melody(self):
         all_notes = [x for x in self.scale if x <= 48]
         self.notes = self.sample_notes(self.repeat, all_notes) * self.note_amount
-
-    # def sample_notes(self, note_amount, all_notes, std_dev=6):
-    #     # First note key center weighted more
-    #     notes = []
-    #     for i in range(note_amount):
-    #         if i == 0:
-    #             W = []
-    #             for n in all_notes:
-    #                 if n % 12 == self.key:
-    #                     W.append(3)
-    #                 else:
-    #                     W.append(1)
-    #             notes.append(random.choices(all_notes, weights=W, k=1)[0])
-    #         else:
-    #             N = norm(notes[-1], std_dev)  
-    #             W = [N.pdf(x) for x in all_notes]
-    #             notes.append(random.choices(all_notes, weights=W, k=1)[0])
-    #     return notes
 
 
 class SimpleBass(Pattern):
@@ -548,3 +514,48 @@ class Arpeggio(Pattern):
     def generate_melody(self):
         all_notes = [x for x in self.scale if self.key + 36 <= x <= self.key + 72]
         self.notes = self.sample_arpeggio_notes(all_notes, self.root_note) * self.repeat
+
+
+
+
+
+    # def sample_notes(self, note_amount, all_notes, bass=False, std_dev=6):
+    #     """
+    #     Sample note_amount notes from all_notes using a gaussian jumping distribution.
+    #     """
+    #     notes = []
+    #     for i in range(note_amount):
+    #         if i == 0:
+    #             # First note key center weighted more if instrument role is bass
+    #             W = []
+    #             for n in all_notes:
+    #                 if bass and n % 12 == self.key:
+    #                     W.append(3)
+    #                 else:
+    #                     W.append(1)
+    #             notes.append(random.choices(all_notes, weights=W, k=1)[0])
+    #         else:
+    #             # Gaussian jumping distribution centered on previous note
+    #             # Standard deviation can be tuned
+    #             N = norm(notes[-1], std_dev)  
+    #             W = [N.pdf(x) for x in all_notes]
+    #             notes.append(random.choices(all_notes, weights=W, k=1)[0])
+    #     return notes
+
+    # def sample_notes(self, note_amount, all_notes, std_dev=6):
+    #     # First note key center weighted more
+    #     notes = []
+    #     for i in range(note_amount):
+    #         if i == 0:
+    #             W = []
+    #             for n in all_notes:
+    #                 if n % 12 == self.key:
+    #                     W.append(3)
+    #                 else:
+    #                     W.append(1)
+    #             notes.append(random.choices(all_notes, weights=W, k=1)[0])
+    #         else:
+    #             N = norm(notes[-1], std_dev)  
+    #             W = [N.pdf(x) for x in all_notes]
+    #             notes.append(random.choices(all_notes, weights=W, k=1)[0])
+    #     return notes

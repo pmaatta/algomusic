@@ -1,6 +1,8 @@
 
 Top priority:
 - fix rhythm/tempo usage
+- note durations
+- overlapping patterns of different length
 - beat generator
   - choose note amount, pattern length & evenly divide notes into pattern
 - solid chord prog + free markov chain melody + drum beat w/ variation
@@ -22,7 +24,6 @@ Normal priority:
 - rhythmic complexity
 - harmony + bass connection
 - unison / duplicate pattern
-- overlapping patterns of different length
 - structure
   - question & answer phrases
 

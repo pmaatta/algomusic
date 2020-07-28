@@ -2,11 +2,12 @@ import random
 import argparse
 from midiutil import MIDIFile
 from chordprogression import generate_chord_progression
-from patterns import Scale, Pattern, Percussion, Bass, SimpleBass, SimpleBass2, SimpleBass3, \
-                     Harmonic, Arpeggio, LowMelodic, MidMelodic, HighMelodic, PercussionSingle, \
-                     BassDrum, Snare, Cymbals, AccentCymbals
+from patterns import Scale, Pattern, Bass, SimpleBass, SimpleBass2, SimpleBass3, Harmonic, \
+                     Arpeggio, LowMelodic, MidMelodic, HighMelodic, PercussionSingle, BassDrum, \
+                     Snare, Cymbals, AccentCymbals
 
 
+# TODO: allpatterns into gentype 1, 2
 # TODO: number of different pattern types
 # TODO: make use of name 'pattern' less ambiguous
 # TODO: melodic type without replacement
@@ -58,6 +59,7 @@ parser.add_argument('-ar', '--arpeggio', type=int, default=1, choices=[1,0], hel
 parser.add_argument('-nc', '--nicescales', type=int, default=1, choices=[1,0], help=f'whether to use "nice" or "spicy" scales', metavar='')
 parser.add_argument('-cpl', '--chordproglen', type=int, default=None, choices=range(1,33), help=f'length of chord progression', metavar='')
 parser.add_argument('-gen', '--gentype', type=int, default=2, choices=[1,2,3], help=f'music generation type', metavar='')
+parser.add_argument('-all', '--allpatterns', type=int, default=0, choices=[1,0], help=f'whether to use all patterns in available_patterns', metavar='')
 
 args = parser.parse_args()
 
@@ -89,6 +91,10 @@ if args.scale is not None and args.mode is not None:
     if args.mode not in valid_mode_range:
         parser.error(f'invalid mode index for chosen scale type ({args.scale}: {valid_mode_range})')
 
+# TODO: better solution
+if args.allpatterns:
+    args.numtracks = 99
+
 
 #=====================================================================#
 #              Create MIDI file and add note information              #
@@ -112,9 +118,9 @@ bass_instruments = [0,33,35,48,49,50,51,62]
 arp_instruments = [90,102]
 
 # Patterns
-all_pattern_types = [Percussion, Bass, SimpleBass, SimpleBass2, SimpleBass3, Harmonic, \
-                     Arpeggio, LowMelodic, MidMelodic, HighMelodic, PercussionSingle, \
-                     BassDrum, Snare, Cymbals, AccentCymbals]
+all_pattern_types = [Bass, SimpleBass, SimpleBass2, SimpleBass3, Harmonic, Arpeggio, \
+                     LowMelodic, MidMelodic, HighMelodic, PercussionSingle, BassDrum, \
+                     Snare, Cymbals, AccentCymbals]
 
 percussion_pattern_types = [PercussionSingle, BassDrum, Snare, Cymbals, AccentCymbals]
 
@@ -214,8 +220,8 @@ def generate_music_1():
                 # Limit volumes
                 if pattern.__class__ == Harmonic:
                     pattern.volumes = [50 for x in pattern.volumes]
-                if pattern.__class__ in percussion_pattern_types:
-                    pattern.volumes = [50 for x in pattern.volumes]
+                # if pattern.__class__ in percussion_pattern_types:
+                #     pattern.volumes = [50 for x in pattern.volumes]
 
                 patterns.append((track, channel, pattern))
 
@@ -351,7 +357,7 @@ def generate_music_2():
         chords = generate_chord_progression(scale)
 
     allowed_pattern_types = [
-        Percussion,
+        # Percussion,
         Bass,
         Harmonic,
         Arpeggio
@@ -395,8 +401,8 @@ def generate_music_2():
             # Limit volumes
             if pattern.__class__ == Harmonic:
                 pattern.volumes = [50 for x in pattern.volumes]
-            elif pattern.__class__ == percussion_pattern_types:
-                pattern.volumes = [50 for x in pattern.volumes]
+            # elif pattern.__class__ == percussion_pattern_types:
+            #     pattern.volumes = [50 for x in pattern.volumes]
 
             patterns.append((track, channel, pattern))
 
@@ -430,10 +436,10 @@ def generate_music_2():
 def generate_music_test():
     """
     Sandbox version of generate_music_1.
+
+    TODO: 9+ tracks -> channel 9 percussion
     """
     patterns = []
-
-    # TODO: user option to use all patterns in available_patterns 
 
     for i in range(args.numpatterns):
 
@@ -441,47 +447,48 @@ def generate_music_test():
         if i == 0:
 
             available_patterns = [
+                bass,
+                Harmonic,
+                melody1,
+                melody2,
                 PercussionSingle,
                 BassDrum,
                 Snare,
                 Cymbals,
-                AccentCymbals,
-                bass,
-                # Harmonic,
+                AccentCymbals
                 # Arpeggio,
-                melody1,
-                melody2
             ]
 
-            for track in range(args.numtracks):
+            if args.allpatterns:
+                last_track_number = len(available_patterns)
+            else:
+                last_track_number = args.numtracks
+
+            for track in range(last_track_number):
                 channel = track
 
                 # Generate random pattern and initialize
-                # Always include bass, bass drum
-                if track == 0:
-                    pattern = bass(
-                        scale.key,
-                        scale.all_scale_notes,
-                        args.length,
-                        args.repeat
-                    )    
-                elif track == 1:
-                    pattern = BassDrum(
-                        scale.key,
-                        scale.all_scale_notes,
-                        args.length,
-                        args.repeat
-                    )    
+
+                if args.allpatterns:
+                    pattern = available_patterns[track]
                 else:
-                    pattern = random.choice(available_patterns)(
-                        scale.key,
-                        scale.all_scale_notes,
-                        args.length,
-                        args.repeat
-                    )
+                    # Always include bass, bass drum
+                    if track == 0:
+                        pattern = bass
+                    elif track == 1:
+                        pattern = BassDrum
+                    else:
+                        pattern = random.choice(available_patterns)
+
+                pattern = pattern(
+                            scale.key,
+                            scale.all_scale_notes,
+                            args.length,
+                            args.repeat
+                          )
                 pattern.initialize()
 
-                if pattern.__class__ in [BassDrum, Snare, AccentCymbals, bass, melody1, melody2]:
+                if not args.allpatterns and pattern.__class__ not in [PercussionSingle, Cymbals]:
                     available_patterns.remove(pattern.__class__) 
 
                 # Choose instrument
@@ -499,10 +506,10 @@ def generate_music_test():
                 midi_file.addProgramChange(track, channel, 0, instr)
                 
                 # Limit volumes
-                if pattern.__class__ == Harmonic:
+                if pattern.__class__ in [Harmonic, PercussionSingle, Cymbals, AccentCymbals]:
                     pattern.volumes = [50 for x in pattern.volumes]
-                elif pattern.__class__ == percussion_pattern_types:
-                    pattern.volumes = [50 for x in pattern.volumes]
+                # elif pattern.__class__ in percussion_pattern_types:
+                #     pattern.volumes = [50 for x in pattern.volumes]
 
                 patterns.append((track, channel, pattern))
 

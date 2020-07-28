@@ -105,7 +105,7 @@ class Scale:
 
 class Pattern(ABC):
     """
-    Abstract base class for creating a random (1/4th) note pattern.
+    Abstract base class for creating a random (1/16th) note pattern.
     """
     def __init__(self, key, scale, length=None, repeat=None):
         self.key = key
@@ -197,6 +197,7 @@ class Pattern(ABC):
         idxs = [self.scale.index(x) for x in self.notes]
         inversion_idxs = [(2*ref_pitch - i) for i in idxs if (2*ref_pitch - i) in scale_idxs]
         inversion = [self.scale[i] for i in inversion_idxs if self.scale[i] in self.allowed_range]
+
         if len(inversion) == len(self.notes):
             return True, inversion
         else:
@@ -210,10 +211,12 @@ class Pattern(ABC):
         Does nothing if at least one modulated note ends up out of the allowed range. 
         Shift may be positive or negative. 
         """
+        assert self.notes is not None, 'Pattern has not been initialized'
         if self.__class__  in (self.percussion_pattern_types + [Percussion]):
             return True, self.notes, self.key, self.scale
         
         new_notes = [note + shift for note in self.notes if note + shift in self.allowed_range]
+
         if len(new_notes) == len(self.notes):
             new_key = (self.key + shift) % 12
             new_scale = [note + shift for note in self.scale]
@@ -229,11 +232,13 @@ class Pattern(ABC):
         The new notes belong to self.scale. Does nothing if at least one modulated 
         note ends up out of the allowed range. Shift may be positive or negative.
         """
+        assert self.notes is not None, 'Pattern has not been initialized'
         if self.__class__  in (self.percussion_pattern_types + [Percussion]):
             return True, self.notes
 
         idxs = [self.scale.index(x) for x in self.notes]
         new_idxs = [i + shift for i in idxs if i + shift in range(len(self.scale))]
+
         if len(new_idxs) == len(idxs):
             new_notes = [self.scale[i] for i in new_idxs]
             return True, new_notes
@@ -261,16 +266,16 @@ class Pattern(ABC):
         while root_note not in all_notes:
             root_note += 12
             if root_note > 127:
-                root_note = root_note % 12
+                root_note = random.choice(all_notes[:5])
         idx = all_notes.index(root_note)
-        all_notes = all_notes[idx::2]
-        notes = random.choices(all_notes, k=self.note_amount)
+        notes = random.choices(all_notes[idx::2], k=self.note_amount)
         return notes
 
 
-# TODO: make abstract / deprecate
-class Percussion(Pattern):
+class Percussion(Pattern, ABC):
     """
+    **Deprecated -> abstract class**
+
     Generic percussion type pattern (no drum kit sounds). Each note in the pattern 
     is potentially a different sound/instrument.
     """
@@ -289,7 +294,7 @@ class Percussion(Pattern):
         self.notes = random.choices(allowed_range, k=self.note_amount) * self.repeat
 
 
-class PercussionSingle(Percussion):
+class PercussionSingle(Pattern):
     """
     Generic percussion type pattern (no drum kit sounds). Each note in the pattern 
     is the same sound/instrument.
@@ -298,21 +303,31 @@ class PercussionSingle(Percussion):
         super().__init__(key, scale, length, repeat)
         default_note_amount = random.randint(1, self.length)
         self.note_amount = note_amount if note_amount is not None else default_note_amount
+
+    def generate_rhythm(self):
+        start_times = sorted(random.choices(range(self.length), k=self.note_amount))
+        durations = [1] * self.note_amount
+        self.repeat_rhythm(start_times, durations)
     
     def generate_melody(self):
         allowed_range = range(60, 71)
         self.notes = random.choices(allowed_range, k=1) * self.note_amount * self.repeat
 
 
-class BassDrum(PercussionSingle):
+class BassDrum(Pattern):
     """
-    Bass drum pattern. Rhythm heavily weighted on quarter notes (TODO).
+    Bass drum pattern. Rhythm heavily weighted on quarter notes.
     """
+    def __init__(self, key, scale, length=None, repeat=None, note_amount=None):
+        super().__init__(key, scale, length, repeat)
+        default_note_amount = random.randint(1, self.length // 2)
+        self.note_amount = note_amount if note_amount is not None else default_note_amount
+
     def generate_rhythm(self):
         w = []
         for i in range(self.length):
             if i % 4 == 0:
-                w.append(5)
+                w.append(7)
             else:
                 w.append(1)
         start_times = sorted(random.choices(range(self.length), k=self.note_amount, weights=w))
@@ -329,7 +344,7 @@ class Snare(Pattern):
     """
     def __init__(self, key, scale, length=None, repeat=None, note_amount=None):
         super().__init__(key, scale, length, repeat)
-        default_note_amount = random.randint(1, self.length // 2)
+        default_note_amount = random.randint(1, self.length // 3)
         self.note_amount = note_amount if note_amount is not None else default_note_amount
 
     def generate_rhythm(self):
@@ -380,9 +395,11 @@ class AccentCymbals(Pattern):
 
 
 class Bass(Pattern):
+    """
+    Generic bass pattern. Plays sustained notes. Low amount of notes more likely.
+    """
     def __init__(self, key, scale, length=None, repeat=None, note_amount=None):
         super().__init__(key, scale, length, repeat)
-        # Low amount of notes more likely
         L = list(range(1, self.length+1))
         W = [exp(-x) for x in L]
         default_note_amount = random.choices(L, weights=W, k=1)[0]
@@ -390,7 +407,6 @@ class Bass(Pattern):
         self.allowed_range = range(23, 49)
     
     def generate_rhythm(self):
-        # Sustained notes
         start_times = sorted(random.sample(range(self.length), self.note_amount))
         durations = [0] * self.note_amount
         for i in range(self.note_amount - 1):
@@ -433,7 +449,7 @@ class SimpleBass2(SimpleBass):
 
 class SimpleBass3(Bass):
     """
-    Plays the key/mode center only.
+    Plays the key/mode center only. The rhythm generation is the same as in the base pattern 'Bass'.
     """
     def generate_melody(self):
         all_notes = [x for x in self.scale if x <= 48 and x%12 == self.key]
@@ -442,7 +458,7 @@ class SimpleBass3(Bass):
 
 class Melodic(Pattern, ABC):
     """
-    Abstract base class for melody type patterns.
+    Abstract base class for melody type patterns. Subclasses Low/Mid/HighMelodic differ only in range.
     """
     def __init__(self, key, scale, length=None, repeat=None, note_amount=None):
         super().__init__(key, scale, length, repeat)
@@ -479,6 +495,10 @@ class HighMelodic(Melodic):
 
 
 class Harmonic(Pattern):
+    """
+    Simple harmony-type pattern. Plays long sustained notes that start at the same time 
+    at the beginning of the pattern.
+    """
     def __init__(self, key, scale, length=None, repeat=None, note_amount=None, root_note=None):
         super().__init__(key, scale, length, repeat)
         default_root_note = random.choice(self.scale) % 12
@@ -498,6 +518,10 @@ class Harmonic(Pattern):
 
 
 class Arpeggio(Pattern):
+    """
+    Arpeggio type pattern. Notes are sampled in the same way as in the 'Harmonic' pattern 
+    but played in sequence.
+    """
     def __init__(self, key, scale, length=None, repeat=None, note_amount=None, root_note=None):
         super().__init__(key, scale, length, repeat)
         default_root_note = random.choice(self.scale) % 12

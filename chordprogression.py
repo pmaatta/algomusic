@@ -35,7 +35,6 @@ def generate_chord_progression(scale, length=8, voicing=None):
 
     if scale.scale_type_name != 'major':
         warnings.warn('voicings do not correspond to scale degrees properly with non-diatonic scales')
-        # raise NotImplementedError
 
     basic_voicings = {
         'triad':    [0, 2, 4],

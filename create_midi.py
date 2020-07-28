@@ -437,7 +437,7 @@ def generate_music_test():
     """
     Sandbox version of generate_music_1.
 
-    TODO: 9+ tracks -> channel 9 percussion
+    TODO: 9+ tracks -> channel 9 percussion (better fix)
     """
     patterns = []
 

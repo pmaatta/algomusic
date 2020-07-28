@@ -106,6 +106,8 @@ class Scale:
 class Pattern(ABC):
     """
     Abstract base class for creating a random (1/16th) note pattern.
+
+    # TODO: docs for attributes
     """
     def __init__(self, key, scale, length=None, repeat=None):
         self.key = key
@@ -142,7 +144,7 @@ class Pattern(ABC):
         """
         assert self.notes is not None, 'generate_rhythm and generate_melody must be called first'
         volumes = random.choices(range(70,110), k=self.note_amount*self.repeat)
-        if self.__class__ not in (self.percussion_pattern_types + [Percussion]):
+        if self.__class__ not in self.percussion_pattern_types:
             for i, note in enumerate(self.notes):
                 if note > 72 and volumes[i] > 70:
                     volumes[i] = 70
@@ -189,7 +191,7 @@ class Pattern(ABC):
         Does nothing if at least one inverted note ends up out of the allowed range. 
         """
         assert self.notes is not None, 'Pattern has not been initialized'
-        if self.__class__  in (self.percussion_pattern_types + [Percussion]):
+        if self.__class__  in self.percussion_pattern_types:
             return True, self.notes
 
         scale_idxs = range(len(self.scale))
@@ -212,7 +214,7 @@ class Pattern(ABC):
         Shift may be positive or negative. 
         """
         assert self.notes is not None, 'Pattern has not been initialized'
-        if self.__class__  in (self.percussion_pattern_types + [Percussion]):
+        if self.__class__  in self.percussion_pattern_types:
             return True, self.notes, self.key, self.scale
         
         new_notes = [note + shift for note in self.notes if note + shift in self.allowed_range]
@@ -233,7 +235,7 @@ class Pattern(ABC):
         note ends up out of the allowed range. Shift may be positive or negative.
         """
         assert self.notes is not None, 'Pattern has not been initialized'
-        if self.__class__  in (self.percussion_pattern_types + [Percussion]):
+        if self.__class__  in self.percussion_pattern_types:
             return True, self.notes
 
         idxs = [self.scale.index(x) for x in self.notes]
@@ -252,9 +254,9 @@ class Pattern(ABC):
         """
         notes = [random.choice(all_notes)]
         for _ in range(note_amount - 1):
-            N = norm(notes[-1], std_dev)
-            W = [N.pdf(x) for x in all_notes]
-            notes.append(random.choices(all_notes, weights=W, k=1)[0])
+            normal_distr = norm(notes[-1], std_dev)
+            note_weights = [normal_distr.pdf(x) for x in all_notes]
+            notes.append(random.choices(all_notes, weights=note_weights, k=1)[0])
         return notes
    
     def sample_arpeggio_notes(self, all_notes, root_note):
@@ -314,6 +316,15 @@ class PercussionSingle(Pattern):
         self.notes = random.choices(allowed_range, k=1) * self.note_amount * self.repeat
 
 
+class Cymbals(PercussionSingle):
+    """
+    Cymbal pattern with no accent/crash cymbals. Each note in the pattern is the same sound/instrument.
+    """
+    def generate_melody(self):
+        allowed_range = [42,44,46,51,53,59]
+        self.notes = random.choices(allowed_range, k=1) * self.note_amount * self.repeat
+
+
 class BassDrum(Pattern):
     """
     Bass drum pattern. Rhythm heavily weighted on quarter notes.
@@ -360,15 +371,6 @@ class Snare(Pattern):
 
     def generate_melody(self):
         self.notes = [40] * self.note_amount * self.repeat
-
-
-class Cymbals(PercussionSingle):
-    """
-    Cymbal pattern with no accent/crash cymbals. Each note in the pattern is the same sound/instrument.
-    """
-    def generate_melody(self):
-        allowed_range = [42,44,46,51,53,59]
-        self.notes = random.choices(allowed_range, k=1) * self.note_amount * self.repeat
 
 
 class AccentCymbals(Pattern):

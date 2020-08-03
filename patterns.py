@@ -48,7 +48,8 @@ class Scale:
         names: list[str]
         all_scale_notes: list[int]
     """
-
+    # TODO: major_no4 & major_no7 are modes of each other
+    # TODO: more chords
     scale_types = {
         'major':                [0, 2, 4, 5, 7, 9, 11],
         'pentatonic':           [0, 3, 5, 7, 10],
@@ -106,6 +107,8 @@ class Scale:
 class Pattern(ABC):
     """
     Abstract base class for creating a random (1/16th) note pattern.
+
+    SUbclasses must override methods 'generate_melody' and 'generate_rhythm'.
 
     # TODO: docs for attributes
     """
@@ -276,7 +279,7 @@ class Pattern(ABC):
 
 class Percussion(Pattern, ABC):
     """
-    **Deprecated -> abstract class**
+    *** Deprecated -> abstract class ***
 
     Generic percussion type pattern (no drum kit sounds). Each note in the pattern 
     is potentially a different sound/instrument.

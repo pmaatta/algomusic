@@ -3,5 +3,7 @@
 /venv
 /.vscode
 /__pycache__
+/midi_files
 parameters*
 *.mid
+*workspace

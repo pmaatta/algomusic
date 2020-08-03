@@ -1,31 +1,42 @@
 
 Top priority:
+- lower probability for diatonic transpositions of a third; higher for 4ths, 5ths, 2nds
 - fix rhythm/tempo usage
-- note durations
-- overlapping patterns of different length
-- beat generator
-  - choose note amount, pattern length & evenly divide notes into pattern
-- solid chord prog + free markov chain melody + drum beat w/ variation
+  - note amounts, start times, durations related
+- harmonize existing pattern
+- arpeggio: 
+  - pitches sequential
+  - root note connected to other patterns
+- harmony + bass connection
 - gentype 1,2
   - 2: same instruments
   - 'merge' 1 and 2: generate chord prog, generate pattern(s), mutate based on chord
 
 
 Normal priority:
+- beat generator
+  - choose note amount, pattern length & evenly divide notes into pattern
+- add / drop out / reintroduce patterns / instruments
+- edit existing midi
+- extend existing midi?
+- note durations
+- different scales overlapping
+- overlapping patterns of different length
+- triplet / other subdivisions, other time signatures
+- solid chord prog + free markov chain melody + drum beat w/ variation
 - communication between patterns
 - non-spicy modes for major
 - arpeggiator
   - random chords, more / less extensions
   - leaps vs no leaps
   - beat & bassline
-- harmonize existing pattern
 - riffs
   - fifths
 - rhythmic complexity
-- harmony + bass connection
 - unison / duplicate pattern
 - structure
   - question & answer phrases
+  - metapatterns: repeat / vary collections of patterns
 
 
 Low priority:

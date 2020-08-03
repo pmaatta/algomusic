@@ -1,11 +1,12 @@
+import os
 import random
 import argparse
+from itertools import groupby
 from midiutil import MIDIFile
 from chordprogression import generate_chord_progression
 from patterns import Scale, Pattern, Bass, SimpleBass, SimpleBass2, SimpleBass3, Harmonic, \
                      Arpeggio, LowMelodic, MidMelodic, HighMelodic, PercussionSingle, BassDrum, \
                      Snare, Cymbals, AccentCymbals
-
 
 # TODO: allpatterns into gentype 1, 2
 # TODO: number of different pattern types
@@ -105,9 +106,22 @@ midi_file = MIDIFile(args.numtracks)
 for track in range(args.numtracks):
     midi_file.addTempo(track, time=0, tempo=args.tempo)
 
+# Get latest number from test midi file names
+def split_numeric(s):
+    for _, g in groupby(s, str.isalpha):
+        yield ''.join(g)
+        
+midis = [x for x in sorted(os.listdir('../midis')) if x.endswith('.mid')]
+last_midi_name = midis[-1][:-4]
+if last_midi_name.endswith('+'):
+    last_midi_name = last_midi_name[:-1]
+parts = list(split_numeric(last_midi_name))
+new_number = str(int(parts[-1]) + 1)
+
 # Keep track of options & scales and instruments used
 instruments_used = []
-with open('parameters.txt', 'w+') as text_file:
+param_filename = '../midis/parameters' + new_number + '.txt'
+with open(param_filename, 'w+') as text_file:
     text_file.write('Options:\n')
     text_file.write('\n'.join([str(arg) for arg in vars(args).items()]))
     text_file.write('\n\n')
@@ -327,7 +341,7 @@ def generate_music_1():
                                       pattern.volumes[i])
 
     # Write scale, instrument, pattern information to text file
-    with open('parameters.txt', 'a+') as text_file:
+    with open(param_filename, 'a+') as text_file:
         text_file.write('Key(s): ' + ', '.join(keys_used) + '\n')
         text_file.write(f'Scale type: {scale.scale_type_name}\n')
         text_file.write(f'Mode: {scale.mode_name}\n\n')
@@ -337,9 +351,9 @@ def generate_music_1():
         text_file.write(' '.join(p_strs))
         #text_file.write('Notes: {}\n'.format(', '.join(scale.names)))
 
-    # Write to MIDI
-    with open("test.mid", "wb") as output_file:
-        midi_file.writeFile(output_file)
+    # # Write to MIDI
+    # with open("test.mid", "wb") as output_file:
+    #     midi_file.writeFile(output_file)
 
 
 
@@ -418,7 +432,7 @@ def generate_music_2():
         running_length += args.length * args.repeat
 
     # Write scale, instrument, pattern information to text file
-    with open('parameters.txt', 'a+') as text_file:
+    with open(param_filename, 'a+') as text_file:
         text_file.write('Key(s): ' + ', '.join(keys_used) + '\n')
         text_file.write(f'Scale type: {scale.scale_type_name}\n')
         text_file.write(f'Mode: {scale.mode_name}\n\n')
@@ -428,9 +442,9 @@ def generate_music_2():
         text_file.write(' '.join(p_strs))
         #text_file.write('Notes: {}\n'.format(', '.join(scale.names)))
 
-    # Write to MIDI
-    with open("test.mid", "wb") as output_file:
-        midi_file.writeFile(output_file)
+    # # Write to MIDI
+    # with open("test.mid", "wb") as output_file:
+    #     midi_file.writeFile(output_file)
 
 
 def generate_music_test():
@@ -628,7 +642,7 @@ def generate_music_test():
                                       pattern.volumes[i])
 
     # Write scale, instrument, pattern information to text file
-    with open('parameters.txt', 'a+') as text_file:
+    with open(param_filename, 'a+') as text_file:
         text_file.write('Key(s): ' + ', '.join(keys_used) + '\n')
         text_file.write(f'Scale type: {scale.scale_type_name}\n')
         text_file.write(f'Mode: {scale.mode_name}\n\n')
@@ -638,9 +652,10 @@ def generate_music_test():
         text_file.write(' '.join(p_strs))
         #text_file.write('Notes: {}\n'.format(', '.join(scale.names)))
 
-    # Write to MIDI
-    with open("test.mid", "wb") as output_file:
-        midi_file.writeFile(output_file)
+    # # Write to MIDI
+    # with open("test.mid", "wb") as output_file:
+    #     midi_file.writeFile(output_file)
+
 
 
 if __name__ == "__main__":
@@ -655,3 +670,7 @@ if __name__ == "__main__":
     elif args.gentype == 3:
         generate_music_test()
 
+    # Write to MIDI
+    midi_filename = '../midis/test_new' + new_number + '.mid'
+    with open(midi_filename, 'wb') as output_file:
+        midi_file.writeFile(output_file)

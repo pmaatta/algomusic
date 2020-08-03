@@ -32,14 +32,14 @@ parser = argparse.ArgumentParser(
 )
 
 # Allowed ranges when chosen manually
-tempo_range = range(0, 1000)
+tempo_range = range(0, 1200)
 length_range = range(0, 1000)
 repeat_range = range(0, 1000)
 pattern_range = range(1, 100)
 
 # Allowed ranges when randomized (input 0)
-random_tempo_min = 60
-random_tempo_max = 500
+random_tempo_min = 60 * 4
+random_tempo_max = 300 * 4
 random_length_min = 3
 random_length_max = 32
 random_repeat_choices = list(range(2, 18, 2))
@@ -449,6 +449,7 @@ def generate_music_test():
             available_patterns = [
                 bass,
                 Harmonic,
+                # Arpeggio,
                 melody1,
                 melody2,
                 PercussionSingle,
@@ -456,8 +457,20 @@ def generate_music_test():
                 Snare,
                 Cymbals,
                 AccentCymbals
-                # Arpeggio,
             ]
+
+            # available_patterns = [
+            #     bass,
+            #     Harmonic,
+            #     melody1,
+            #     melody2,
+            #     PercussionSingle,
+            #     BassDrum,
+            #     Snare,
+            #     Cymbals,
+            #     AccentCymbals
+            #     # Arpeggio,
+            # ]
 
             if args.allpatterns:
                 last_track_number = len(available_patterns)

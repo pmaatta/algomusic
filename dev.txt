@@ -1,5 +1,6 @@
 
 Top priority:
+- split generate_music functions into smaller functions
 - lower probability for diatonic transpositions of a third; higher for 4ths, 5ths, 2nds
 - fix rhythm/tempo usage
   - note amounts, start times, durations related
@@ -45,6 +46,20 @@ Low priority:
 - chromatic notes, borrowed chords
 - modulation
   - key change jumping distribution
+
+
+Music gen idea:
+0. Take in parameters (initial tempo, key, time signature etc)
+--
+1. Choose instruments (pattern types)
+2. Generate chord progression of length L (number of chords / bars), choose chord progression repeat amount R
+3. Generate drum patterns (1-2 bars), repeat for L*R bars
+4. Generate bass & harmony parts, repeat R times
+    - varying pattern to conform to a new scale optional
+5. Generate background melody parts
+    - varying pattern to conform to a new scale necessary
+5. Generate lead melody part(s)
+    - Overarching structure; different approach from Pattern needed
 
 
 

@@ -23,21 +23,26 @@ class ChordProgression:
 
     # TODO: update comments
 
-    Args:
-        scale: Scale              Scale of the progression.
+    scale: Scale              Scale of the progression.
 
-        length: int               Length of the progression (number of chords).
+    length: int               Length of the progression (number of chords).
 
-        voicing: str/list(int)    If given, determines the structure of all chords in the progression,
-                                  in zero-based scale degrees. Must be a key or value in basic_voicings or
-                                  a list of ints in range(scale_length). If not given, all chords have a
-                                  separate randomly chosen voicing.
+    scale_length: int         Number of notes in the scale.
 
-        allow_outside: bool       Whether to allow chords in the progression that are based on notes 
-                                  outside of the given scale.
+    scale_degrees: list(int)  List of the scale degrees (root notes) of the progression.
 
-    Returns:
-        chord_progression_notes: list(list(int))  A list containing a list of notes for each chord.
+    voicing: str/list(int)    If given, determines the structure of all chords in the progression,
+                              in zero-based scale degrees. Must be a key or value in basic_voicings or
+                              a list of ints in range(scale_length). If not given, all chords have a
+                              separate randomly chosen voicing.
+
+    voicing_list: list(list(int))  List of voicings for each chord in the progression.
+
+    chord_progression_notes: list(list(int))  A list containing a list of allowed notes for each chord.
+
+    allow_outside: bool       Whether to allow chords in the progression that are based on notes 
+                              outside of the given scale.
+
     """
     
     basic_voicings = {

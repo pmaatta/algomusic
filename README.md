@@ -1,0 +1,2 @@
+# algomusic
+Algorithmic music generation

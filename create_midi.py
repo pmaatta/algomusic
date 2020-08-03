@@ -3,7 +3,7 @@ import random
 import argparse
 from itertools import groupby
 from midiutil import MIDIFile
-from chordprogression import generate_chord_progression
+from chordprogression import generate_chord_progression, ChordProgression
 from patterns import Scale, Pattern, Bass, SimpleBass, SimpleBass2, SimpleBass3, Harmonic, \
                      Arpeggio, LowMelodic, MidMelodic, HighMelodic, PercussionSingle, BassDrum, \
                      Snare, Cymbals, AccentCymbals

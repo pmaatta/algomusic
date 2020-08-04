@@ -15,6 +15,10 @@ Top priority:
 
 
 Normal priority:
+- gentype 4:
+  - sections
+  - modulate chord prog
+- add/remove instruments 
 - beat generator
   - choose note amount, pattern length & evenly divide notes into pattern
 - add / drop out / reintroduce patterns / instruments
@@ -59,7 +63,7 @@ Music gen idea:
 5. Generate background melody parts
     - varying pattern to conform to a new scale necessary
 5. Generate lead melody part(s)
-    - Overarching structure; different approach from Pattern needed
+    - overarching structure; different approach from Pattern needed
 
 
 

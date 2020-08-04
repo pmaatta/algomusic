@@ -3,10 +3,11 @@ import random
 import argparse
 from itertools import groupby
 from midiutil import MIDIFile
-from chordprogression import generate_chord_progression, ChordProgression
+from chordprogression import generate_chord_progression
 from patterns import Scale, Pattern, Bass, SimpleBass, SimpleBass2, SimpleBass3, Harmonic, \
                      Arpeggio, LowMelodic, MidMelodic, HighMelodic, PercussionSingle, BassDrum, \
-                     Snare, Cymbals, AccentCymbals
+                     Snare, Cymbals, AccentCymbals, ChordProgression
+
 
 # TODO: allpatterns into gentype 1, 2
 # TODO: number of different pattern types
@@ -53,14 +54,15 @@ parser.add_argument('-k', '--key', type=int, default=None, choices=range(12), he
 parser.add_argument('-l', '--length', type=int, default=8, help=f'pattern length in {length_range} (0 = random)', metavar='')
 parser.add_argument('-r', '--repeat', type=int, default=4, help=f'pattern repeat amount in {repeat_range} (0 = random)', metavar='')
 parser.add_argument('-t', '--tempo', type=int, default=340, help=f'song tempo in {tempo_range} (0 = random)', metavar='')
-parser.add_argument('-n', '--numtracks', type=int, default=3, choices=range(1, 9), help='number of tracks in range(1, 9)', metavar='')
+parser.add_argument('-n', '--numtracks', type=int, default=16, choices=range(1, 21), help='number of tracks in range(1, 9)', metavar='')
 parser.add_argument('-p', '--numpatterns', type=int, default=16, help=f'number of patterns in {pattern_range}', metavar='')
 parser.add_argument('-lt', '--limittracks', type=int, default=1, choices=[1,0], help=f'whether to limit number of tracks per pattern type', metavar='')
 parser.add_argument('-ar', '--arpeggio', type=int, default=1, choices=[1,0], help=f'whether to allow arpeggio pattern type', metavar='')
 parser.add_argument('-nc', '--nicescales', type=int, default=1, choices=[1,0], help=f'whether to use "nice" or "spicy" scales', metavar='')
-parser.add_argument('-cpl', '--chordproglen', type=int, default=None, choices=range(1,33), help=f'length of chord progression', metavar='')
-parser.add_argument('-gen', '--gentype', type=int, default=2, choices=[1,2,3], help=f'music generation type', metavar='')
+parser.add_argument('-cpl', '--chordproglen', type=int, default=4, choices=range(1,33), help=f'length of chord progression', metavar='')
+parser.add_argument('-gen', '--gentype', type=int, default=4, choices=[1,2,3,4], help=f'music generation type', metavar='')
 parser.add_argument('-all', '--allpatterns', type=int, default=0, choices=[1,0], help=f'whether to use all patterns in available_patterns', metavar='')
+parser.add_argument('-v', '--voicing', type=str, default=None, choices=ChordProgression.basic_voicings.keys(), help=f'type of the chords in the chord progression', metavar='')
 
 args = parser.parse_args()
 
@@ -94,7 +96,7 @@ if args.scale is not None and args.mode is not None:
 
 # TODO: better solution
 if args.allpatterns:
-    args.numtracks = 99
+    args.numtracks = 16
 
 
 #=====================================================================#
@@ -182,6 +184,34 @@ if args.scale is None:
 
 scale = Scale(args.key, args.scale, args.mode)
 keys_used = [Scale.note_names[scale.key]]
+
+
+def add_notes(track, channel, pattern, midi_file, repeat=0):
+    """
+    Add notes of a pattern to a midi file.
+    """
+    pattern.start_times = [x + pattern.total_length * repeat for x in pattern.start_times]
+    for i in range(len(pattern.notes)):
+        midi_file.addNote(track, 
+                          channel,
+                          pattern.notes[i],
+                          pattern.start_times[i],
+                          pattern.durations[i],
+                          pattern.volumes[i])
+
+def add_info(param_filename, scale, keys_used, instruments_used, patterns):
+    """
+    Write scale, instrument & pattern information to text file.
+    """
+    with open(param_filename, 'a+') as text_file:
+        text_file.write('Key(s): ' + ', '.join(keys_used) + '\n')
+        text_file.write(f'Scale type: {scale.scale_type_name}\n')
+        text_file.write(f'Mode: {scale.mode_name}\n\n')
+        text_file.write('Instruments: {}\n'.format(' '.join(instruments_used)))
+        text_file.write('Pattern types:\n')
+        p_strs = [str(p.__class__).split('.')[1].split("'")[0] for _, _, p in patterns]
+        text_file.write(' '.join(p_strs))
+
 
 
 # -------------------------- #
@@ -447,9 +477,8 @@ def generate_music_2():
     #     midi_file.writeFile(output_file)
 
 
-def generate_music_test():
+def generate_music_3():
     """
-    Sandbox version of generate_music_1.
 
     TODO: 9+ tracks -> channel 9 percussion (better fix)
     """
@@ -658,6 +687,83 @@ def generate_music_test():
 
 
 
+
+def generate_music_4():
+
+    # TODO: write params
+    # TODO: take in args
+    # - drum loop length
+    # - pattern types
+    # - voicing(s)
+
+    default_pattern_types = [
+        SimpleBass,
+        Harmonic,
+        Harmonic,
+        Harmonic,
+        MidMelodic,
+        BassDrum,
+        Snare,
+        Cymbals,
+        AccentCymbals,
+        PercussionSingle
+    ]
+
+    chord_prog = ChordProgression(scale, length=args.chordproglen, voicing=args.voicing)
+
+    for track, pattern_type in enumerate(default_pattern_types):
+
+        if pattern_type in percussion_pattern_types:
+            channel = 9
+            instr = 0
+            instruments_used.append(str(instr))
+            midi_file.addProgramChange(track, channel, 0, instr)
+
+            drum_pattern_bars = 2  # args.___
+            drum_pattern_repeat = chord_prog.total_length // drum_pattern_bars  # remainder
+
+            pattern = pattern_type(
+                scale.key,
+                scale.all_scale_notes,
+                args.length * drum_pattern_bars,
+                drum_pattern_repeat
+            )
+            pattern.initialize()
+
+            if pattern_type in [PercussionSingle, Cymbals, AccentCymbals]:
+                pattern.volumes = [50 for x in pattern.volumes]
+            if pattern_type in [BassDrum, Snare]:
+                for i, vol in enumerate(pattern.volumes):
+                    if vol > 60:
+                        pattern.volumes[i] = 60
+
+            add_notes(track, channel, pattern, midi_file)
+
+        else:
+            channel = (track % 16) if (track % 16) != 9 else 8
+            if pattern_type in bass_pattern_types:
+                instr = random.choice(bass_instruments)
+            else: 
+                instr = random.choice(all_instruments)
+            instruments_used.append(str(instr))
+            midi_file.addProgramChange(track, channel, 0, instr)
+
+            for bar, chord in enumerate(chord_prog.chord_progression_notes):
+                pattern = pattern_type(
+                    scale.key,
+                    chord,
+                    args.length,
+                    1   # args.repeat
+                )
+                pattern.initialize()
+
+                if pattern_type == Harmonic:
+                    pattern.volumes = [50 for x in pattern.volumes]
+
+                add_notes(track, channel, pattern, midi_file, repeat=bar)
+
+
+
 if __name__ == "__main__":
 
     # Choose generation function
@@ -668,7 +774,10 @@ if __name__ == "__main__":
         generate_music_2()
 
     elif args.gentype == 3:
-        generate_music_test()
+        generate_music_3()
+
+    elif args.gentype == 4:
+        generate_music_4()
 
     # Write to MIDI
     midi_filename = '../midis/test_new' + new_number + '.mid'

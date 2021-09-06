@@ -1,2 +1,2 @@
 # algomusic
-Algorithmic music generation
+Algorithmic music generation. See it in action: https://algochops.herokuapp.com/

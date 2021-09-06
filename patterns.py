@@ -5,39 +5,6 @@ from scipy.stats import norm
 from abc import ABC, abstractmethod
 
 
-# TODO: drum parts straighter (+ argparse option)
-# TODO: rhythm density
-# TODO: make volume limiting internal
-# TODO: percussionsingle
-# TODO: better durations
-# TODO: class "Song" for song generation handling
-    # chords, chord progressions, arpeggios, chord tones for melodies, pedal point for bass, ...
-    # modulate given pattern
-# TODO: type checking (at user level), default values, None
-# TODO: docs for argument types
-# TODO: docs for class attributes
-# TODO: docs for patterns if not self-explanatory
-# TODO: input Scale instance into Pattern to get mode center
-# TODO: drums vs percs
-    # too sparse rhythm
-    # percussion subpatterns
-# TODO: randomize length, repeat at user input level
-# TODO: chords as scales
-# TODO: pattern interaction
-# TODO: sample_notes bass option cleanup
-# TODO: modulate / diatonic_modulate
-    # ------- cleanup & bugfix --------
-    # modulate called -> update key, scale & write to parameters.txt
-# TODO: mutations:
-    # new class?
-    # streching / squeezing time
-    # single (/multiple) note shift (pitch)
-    # single (/multiple) note shift (time)
-    # displace / rotate rhythm
-    # add notes
-    # drop notes
-
-
 class Scale:
     """
     Create random scale and filter notes in range 0-127 accordingly.
@@ -53,8 +20,7 @@ class Scale:
         names: list[str]
         all_scale_notes: list[int]
     """
-    # TODO: major_no4 & major_no7 are modes of each other
-    # TODO: more chords
+
     scale_types = {
         'major':                [0, 2, 4, 5, 7, 9, 11],
         'pentatonic':           [0, 3, 5, 7, 10],
@@ -118,8 +84,6 @@ class ChordProgression:
     given, all the chords have that particular voicing. Intervals other than the 
     first and fifth are filtered out of low notes.
 
-    # TODO: update comments
-
     scale: Scale              Scale of the progression.
 
     length: int               Length of the progression (number of chords).
@@ -158,8 +122,8 @@ class ChordProgression:
     def __init__(self, scale, length=8, repeat=4, voicing=None, allow_outside=None):
 
         if scale.scale_type_name != 'major':
-            raise NotImplementedError
-            # warnings.warn('voicings do not correspond to scale degrees properly with non-diatonic scales')
+            warnings.warn('voicings do not correspond to scale degrees properly with non-diatonic scales')
+            # raise NotImplementedError
         if scale.mode_idx != 0:
             warnings.warn('if mode is not ionian the scale degree weighting is off')
         
@@ -168,9 +132,12 @@ class ChordProgression:
         self.repeat = repeat
         self.total_length = length * repeat
         self.scale_length = len(self.scale.scale_type)
-        self.scale_degrees = random.choices(range(self.scale_length), 
-                                            weights=[5,5,5,5,5,5,0],
-                                            k=length)
+        if len(scale.scale_type) == 7:
+            self.scale_degrees = random.choices(range(self.scale_length), 
+                                                weights=[5,5,5,5,5,5,0],
+                                                k=length)
+        else:
+            self.scale_degrees = random.choices(range(self.scale_length), k=length)
         self.voicing_list = None
         self.chord_progression_notes = None
 
@@ -229,12 +196,13 @@ class Pattern(ABC):
 
     # TODO: docs for attributes
     """
-    def __init__(self, key, scale, length=None, repeat=None):
+    def __init__(self, key, scale, length=None, repeat=None, rigidity=0.5):
         self.key = key
         self.scale = scale
         self.allowed_range = range(23,97)
         self.length = length if length is not None else random.randint(1, 16)
         self.repeat = repeat if repeat is not None else random.randint(2, 8)
+        self.rigidity = rigidity
         self.total_length = self.length * self.repeat
         self.note_amount = None
         self.notes = None
@@ -325,7 +293,6 @@ class Pattern(ABC):
         else:
             return False, self.notes
 
-    # TODO: how to change self.scale
     def modulate(self, shift):
         """
         Modulate all notes of self.notes by 'shift' amount of semitones. 
@@ -346,7 +313,6 @@ class Pattern(ABC):
         else:
             return False, self.notes, self.key, self.scale
 
-    # TODO: allowed range (self.scale vs ?)
     def diatonic_modulate(self, shift):
         """
         Modulate all notes of self.notes by 'shift' amount of steps in the scale. 
@@ -403,8 +369,7 @@ class Percussion(Pattern, ABC):
     """
     def __init__(self, key, scale, length=None, repeat=None, note_amount=None):
         super().__init__(key, scale, length, repeat)
-        default_note_amount = random.randint(self.length, 2*self.length)
-        self.note_amount = note_amount if note_amount is not None else default_note_amount
+        self.note_amount = note_amount if note_amount is not None else random.randint(self.length, 2*self.length)
 
     def generate_rhythm(self):
         start_times = sorted(random.choices(range(self.length), k=self.note_amount))
@@ -421,10 +386,9 @@ class PercussionSingle(Pattern):
     Generic percussion type pattern (no drum kit sounds). Each note in the pattern 
     is the same sound/instrument.
     """
-    def __init__(self, key, scale, length=None, repeat=None, note_amount=None):
+    def __init__(self, key, scale, length=None, repeat=None, note_amount=None, rigidity=0.5):
         super().__init__(key, scale, length, repeat)
-        default_note_amount = random.randint(1, self.length)
-        self.note_amount = note_amount if note_amount is not None else default_note_amount
+        self.note_amount = note_amount if note_amount is not None else random.randint(1, self.length)
 
     def generate_rhythm(self):
         start_times = sorted(random.choices(range(self.length), k=self.note_amount))
@@ -436,10 +400,28 @@ class PercussionSingle(Pattern):
         self.notes = random.choices(allowed_range, k=1) * self.note_amount * self.repeat
 
 
-class Cymbals(PercussionSingle):
+class Cymbals(Pattern):
     """
     Cymbal pattern with no accent/crash cymbals. Each note in the pattern is the same sound/instrument.
     """
+    def __init__(self, key, scale, length=None, repeat=None, note_amount=None, rigidity=0.5):
+        super().__init__(key, scale, length, repeat)
+        self.note_amount = note_amount if note_amount is not None else random.randint(1, self.length)
+        self.rigidity = rigidity
+
+    def generate_rhythm(self):
+        high_weight = self.rigidity * 20 if self.rigidity > 0.0 else 1
+        low_weight = 1 if self.rigidity < 1.0 else 0
+        note_weights = []
+        for i in range(self.length):
+            if i % 2 == 0:
+                note_weights.append(high_weight)
+            else:
+                note_weights.append(low_weight)
+        start_times = sorted(random.choices(range(self.length), k=self.note_amount, weights=note_weights))
+        durations = [1] * self.note_amount
+        self.repeat_rhythm(start_times, durations)
+
     def generate_melody(self):
         allowed_range = [42,44,46,51,53,59]
         self.notes = random.choices(allowed_range, k=1) * self.note_amount * self.repeat
@@ -449,19 +431,21 @@ class BassDrum(Pattern):
     """
     Bass drum pattern. Rhythm heavily weighted on quarter notes.
     """
-    def __init__(self, key, scale, length=None, repeat=None, note_amount=None):
+    def __init__(self, key, scale, length=None, repeat=None, note_amount=None, rigidity=0.5):
         super().__init__(key, scale, length, repeat)
-        default_note_amount = random.randint(1, self.length // 2)
-        self.note_amount = note_amount if note_amount is not None else default_note_amount
+        self.note_amount = note_amount if note_amount is not None else random.randint(1, self.length // 2)
+        self.rigidity = rigidity
 
     def generate_rhythm(self):
-        w = []
+        high_weight = self.rigidity * 50 if self.rigidity > 0.0 else 1
+        low_weight = 1 if self.rigidity < 1.0 else 0
+        note_weights = []
         for i in range(self.length):
             if i % 4 == 0:
-                w.append(7)
+                note_weights.append(high_weight)
             else:
-                w.append(1)
-        start_times = sorted(random.choices(range(self.length), k=self.note_amount, weights=w))
+                note_weights.append(low_weight)
+        start_times = sorted(random.choices(range(self.length), k=self.note_amount, weights=note_weights))
         durations = [1] * self.note_amount
         self.repeat_rhythm(start_times, durations)
 
@@ -473,19 +457,21 @@ class Snare(Pattern):
     """
     Snare drum pattern. Rhythm heavily weighted on quarter notes 2 and 4 (where applicable).
     """
-    def __init__(self, key, scale, length=None, repeat=None, note_amount=None):
+    def __init__(self, key, scale, length=None, repeat=None, note_amount=None, rigidity=0.5):
         super().__init__(key, scale, length, repeat)
-        default_note_amount = random.randint(1, self.length // 3)
-        self.note_amount = note_amount if note_amount is not None else default_note_amount
+        self.note_amount = note_amount if note_amount is not None else random.randint(1, max(1, self.length // 3))
+        self.rigidity = rigidity
 
     def generate_rhythm(self):
-        w = []
+        high_weight = self.rigidity * 70 if self.rigidity > 0.0 else 1
+        low_weight = 1 if self.rigidity < 1.0 else 0
+        note_weights = []
         for i in range(self.length):
             if i % 8 == 4:
-                w.append(16)
+                note_weights.append(high_weight)
             else:
-                w.append(1)
-        start_times = sorted(random.choices(range(self.length), k=self.note_amount, weights=w))
+                note_weights.append(low_weight)
+        start_times = sorted(random.choices(range(self.length), k=self.note_amount, weights=note_weights))
         durations = [1] * self.note_amount
         self.repeat_rhythm(start_times, durations)
 
@@ -498,7 +484,7 @@ class AccentCymbals(Pattern):
     Accent (crash) cymbal pattern. Each note in the pattern is the same sound/instrument. Only plays
     1 note per repeat (alternatively 1 note per all repeats) in the beginning of the pattern.
     """
-    def __init__(self, key, scale, length=None, repeat=None, note_amount=None, play_each_repeat=False):
+    def __init__(self, key, scale, length=None, repeat=None, note_amount=None, play_each_repeat=False, rigidity=0.5):
         super().__init__(key, scale, length, repeat)
         self.note_amount = 1
         self.allowed_range = [49,52,55,57]
@@ -660,48 +646,3 @@ class Arpeggio(Pattern):
     def generate_melody(self):
         all_notes = [x for x in self.scale if self.key + 36 <= x <= self.key + 72]
         self.notes = self.sample_arpeggio_notes(all_notes, self.root_note) * self.repeat
-
-
-
-
-
-    # def sample_notes(self, note_amount, all_notes, bass=False, std_dev=6):
-    #     """
-    #     Sample note_amount notes from all_notes using a gaussian jumping distribution.
-    #     """
-    #     notes = []
-    #     for i in range(note_amount):
-    #         if i == 0:
-    #             # First note key center weighted more if instrument role is bass
-    #             W = []
-    #             for n in all_notes:
-    #                 if bass and n % 12 == self.key:
-    #                     W.append(3)
-    #                 else:
-    #                     W.append(1)
-    #             notes.append(random.choices(all_notes, weights=W, k=1)[0])
-    #         else:
-    #             # Gaussian jumping distribution centered on previous note
-    #             # Standard deviation can be tuned
-    #             N = norm(notes[-1], std_dev)  
-    #             W = [N.pdf(x) for x in all_notes]
-    #             notes.append(random.choices(all_notes, weights=W, k=1)[0])
-    #     return notes
-
-    # def sample_notes(self, note_amount, all_notes, std_dev=6):
-    #     # First note key center weighted more
-    #     notes = []
-    #     for i in range(note_amount):
-    #         if i == 0:
-    #             W = []
-    #             for n in all_notes:
-    #                 if n % 12 == self.key:
-    #                     W.append(3)
-    #                 else:
-    #                     W.append(1)
-    #             notes.append(random.choices(all_notes, weights=W, k=1)[0])
-    #         else:
-    #             N = norm(notes[-1], std_dev)  
-    #             W = [N.pdf(x) for x in all_notes]
-    #             notes.append(random.choices(all_notes, weights=W, k=1)[0])
-    #     return notes
